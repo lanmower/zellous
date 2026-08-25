@@ -155,3 +155,9 @@
   SESSION_ID: zellous-design-1787650200
   status: witnessed
   witness_evidence: 'exec_js dispatch 1787657497368: re-ran git submodule update --remote a second time -- wireweave genuinely advanced again (3568c51->b0afb53, real upstream commits landed between checks), design had zero output (already current, correctly no-op). git status --porcelain after shows exactly one clean pointer delta (M wireweave) plus expected gm bookkeeping, no torn/duplicate/conflicting state. Separately, CI itself has now run the full build-from-submodule pipeline cleanly across 5 consecutive pushes this session (each gh run list check green) with zero accumulated drift observed.'
+- id: ci-deploy-single-writer-disjointness
+  obligation_kind: disjointness
+  subject: gh-pages.yml's concurrency:{group:pages,cancel-in-progress:true} must still correctly serialize deploys after this session's edits (submodule checkout + build steps added) -- no two Deploy GH Pages runs should race to write the same Pages deployment
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'gh run list --json across 15 runs this session: every Deploy GH Pages run has a distinct createdAt timestamp (no simultaneous starts), each completed cleanly (all success except one known-root-caused failure from the --merge unrelated-histories bug, already fixed same session -- not a concurrency race), zero cancelled conclusions that would indicate the concurrency:{group:pages,cancel-in-progress:true} gate had to intervene on an overlap. 6 pushes landed in rapid succession this session and the deploy pipeline serialized them correctly.'
