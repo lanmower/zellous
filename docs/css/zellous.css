@@ -80,9 +80,6 @@ html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
   --panel-text-2: var(--paper-2);
   --panel-text-3: var(--ink-3);
   --border-color: color-mix(in oklab, var(--paper) 12%, transparent);
-  /* Brand-green accent tuned per theme: a single fixed green cannot clear
-     4.5:1 against both the near-black ink bg and the cream paper bg. */
-  --status-accent: #2E9E2A;
 }
 html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   --bg-3: var(--paper-3);
@@ -94,7 +91,6 @@ html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   --panel-text-2: var(--ink-2);
   --panel-text-3: var(--ink-3);
   --border-color: color-mix(in oklab, var(--ink) 12%, transparent);
-  --status-accent: #247420;
 }
 
 /* ── 247420 design primitives — rail / dot / chip ── */
@@ -576,7 +572,7 @@ html.ds-247420 button.msg-action-btn { color: var(--fg-3); padding: 4px 6px; bor
 
 /* SDK chat-kit surface — keep area transparent */
 html.ds-247420 .chat-area { padding: 0; border: 0; background: transparent; box-shadow: none; }
-html.ds-247420 .chat { padding: 0 0 calc(var(--app-status-h, 42px) + var(--space-4)) 0 !important; background: transparent; }
+html.ds-247420 .chat { padding: 0 0 var(--space-4) 0 !important; background: transparent; }
 html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); background: transparent; }
 
 /* Active room pill: a.active bg is a translucent accent tint over the panel
@@ -641,34 +637,12 @@ html.ds-247420 .chat-composer-toolbar button {
   position: static;
 }
 
-/* Status bar — make sure it's visible and styled */
-html.ds-247420 .app-status {
-  display: flex; align-items: center; gap: var(--space-3);
-  padding: 10px var(--space-5);
-  font-family: var(--ff-mono); font-size: var(--fs-xs);
-  color: var(--fg-3);
-  border-top: 1px solid var(--rule);
-  flex-shrink: 0;
-}
-/* --accent (#B6FF1B neon) is illegible on the light theme's cream --bg
-   (~1.07:1) and no single green clears 4.5:1 against both the near-black
-   ink bg and the cream paper bg, so --status-accent is defined per-theme
-   above (2E9E2A on ink ~5.5:1, 247420 on light/paper ~5.2:1). */
-html.ds-247420 .app-status .item:first-of-type { color: var(--status-accent); }
-html.ds-247420 .app-status .spread { flex: 1; }
-html.ds-247420 .app-status a.item { text-decoration: none; }
-html.ds-247420 .app-status a.item:hover { text-decoration: underline; }
 html.ds-247420 .app-body {
   height: auto !important;
   flex: 1 1 0 !important;
   min-height: 0 !important;
 }
-html.ds-247420 .ca-app { height: calc(100vh - 42px) !important; overflow: hidden; }
-html.ds-247420 .app-status {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: 42px; z-index: 100;
-  background: var(--bg);
-}
+html.ds-247420 .ca-app { height: 100vh !important; overflow: hidden; }
 
 /* Touch-target floor (WCAG 2.5.5): SDK ships 36/28px icon buttons that fall
    short of the 44x44 minimum on touch viewports. Enlarge the hit area

@@ -131,3 +131,9 @@
   SESSION_ID: zellous-design-1787650200
   status: witnessed
   witness_evidence: 'cdp dispatch 1787654136455/1787654...56: ran design/''s npm install + npm run build locally (dispatch 1787653543774, produced dist/247420.{js,css}, 743725/875594 bytes, all 15 lint checks passed), copied into docs/vendor/design/ and wireweave/src into docs/vendor/wireweave/src, updated docs/nostr-chat/index.html importmap+stylesheet to reference the local paths, .gitignore exceptions added and verified via git check-ignore (NOT_IGNORED for both new paths). Booted a real static server (port 5188) and drove a real Chrome instance via the cdp verb: console log confirmed ''[anentrypoint-design] resolved module URL: http://127.0.0.1:5188/vendor/design/247420.js'' (local path, not jsdelivr), window.appReady===true, 32 __zellous keys populated, window.lk/auth/ui/__sdk all live objects, zero pageErrors, zero non-200 network responses across 83 requests.'
+- id: footer-removal-postcondition
+  obligation_kind: postcondition
+  subject: 'Postcondition for remove-status-footer-bar: footer DOM/CSS/JS fully gone, no dead space, zero console errors'
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'cdp dispatch against local build: footerExists=false, zStatusServerExists=false, poweredByLinkExists=false, bodyScrollHeight(710)===windowInnerHeight(710) (no dead space/overflow), appReady=true, zero pageErrors.'
