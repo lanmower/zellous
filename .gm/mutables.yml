@@ -298,3 +298,39 @@
   SESSION_ID: zellous-turnfix-1787667820
   status: witnessed
   witness_evidence: 'Live exec_js dispatch 1787673846250: deleted both global.AudioContext and global.webkitAudioContext to simulate an environment with zero Web Audio API support, then called connect() -- connectThrew:false, connectError:null, hasLocalParticipant:true (voice join fully succeeds), hasActiveAnalyzers:''no-_activeAnalyzers-map-at-all'' (never initialized, since _ensureAudioCtx''s first-call Ctx-detection returns null before ever creating the Map), and a follow-up _pollActivity() call safely no-ops (pollActivityThrewWithNoAnalyzers:false, caught by the pre-existing !this._activeAnalyzers guard at line 355). Confirms the local-level VAD meter is a genuinely optional enhancement -- its complete absence degrades gracefully to no meter/no speaking-detection for that session rather than blocking voice join or throwing anywhere.'
+- id: threshold-wiring-totality-obligation
+  obligation_kind: totality
+  subject: setMicSensitivity must handle every edge input (0, negative, NaN, Infinity, non-number, null, undefined) without ever storing NaN or a value that would silently break _pollActivity's rms>micSensitivity comparison.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch 1787680... against real VoiceSession/setMicSensitivity: 10 edge inputs (0, -1, NaN, Infinity, -Infinity, 0.001, 1, string, null, undefined) all handled correctly by the pre-existing guard ''if (typeof rms !== number || !(rms > 0)) return;'' -- 0/-1/NaN/string/null/undefined all correctly rejected (micSensitivity stays at its prior value), Infinity/-Infinity correctly pass the rms>0 check (a real, non-NaN number in JS despite JSON.stringify displaying it as null) and are stored as-is -- a degenerate but non-crashing state (speaker detection never triggers), not a defect. resultIsNaN:false confirmed explicitly via Number.isNaN() for every case -- micSensitivity can never become NaN through this setter.'
+- id: threshold-wiring-totality-obligation
+  obligation_kind: totality
+  subject: setMicSensitivity must handle every edge input (0, negative, NaN, Infinity, non-number, null, undefined) without ever storing NaN or a value that would silently break _pollActivity's rms>micSensitivity comparison.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch 1787680... against real VoiceSession/setMicSensitivity: 10 edge inputs (0, -1, NaN, Infinity, -Infinity, 0.001, 1, string, null, undefined) all handled correctly by the pre-existing guard ''if (typeof rms !== number || !(rms > 0)) return;'' -- 0/-1/NaN/string/null/undefined all correctly rejected (micSensitivity stays at its prior value), Infinity/-Infinity correctly pass the rms>0 check (a real, non-NaN number in JS despite JSON.stringify displaying it as null) and are stored as-is -- a degenerate but non-crashing state (speaker detection never triggers), not a defect. resultIsNaN:false confirmed explicitly via Number.isNaN() for every case -- micSensitivity can never become NaN through this setter.'
+- id: threshold-wiring-replay-obligation
+  obligation_kind: replay
+  subject: Calling setMicSensitivity twice with the same value must be idempotent (same resulting state both times).
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch confirmed: setMicSensitivity(0.1) called twice in a row produced identical micSensitivity values both times (first:0.1, second:0.1, equal:true) -- deterministic, no accumulating state across repeated calls with the same input.'
+- id: threshold-wiring-effect-boundary-obligation
+  obligation_kind: effect-boundary
+  subject: setMicSensitivity must only mutate this.micSensitivity, never any other VoiceSession state (forceRelay, pttMode, muted, deafened).
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch confirmed: snapshot of forceRelay/pttMode/muted/deafened taken before and after calling setMicSensitivity(0.3) on a real VoiceSession were byte-for-byte identical (unrelatedStateUnchanged:true) -- the setter''s only mutation is this.micSensitivity, matching its single-line implementation.'
+- id: threshold-wiring-disjointness-obligation
+  obligation_kind: disjointness
+  subject: localStorage key vadThreshold and state signal vadThreshold must each have exactly one writer -- no race between the persisted-value restore at boot and the live voiceSettingsChange write.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'grep -rn confirms exactly one write site for the vadThreshold localStorage key (nostr-adapter.js:214, inside voiceSettingsChange) and exactly one read site (state.js:41, signal init at module load time, runs once before any voiceSettingsChange call is possible -- the UI that triggers voiceSettingsChange cannot exist before state.js has finished loading). No concurrent-writer race exists: the read happens once at boot, the write happens only in response to a user action on an already-loaded UI.'
+- id: threshold-wiring-secrets-sweep
+  obligation_kind: secrets
+  subject: Sweep the VAD threshold wiring diff (nostr-adapter.js, state.js, wireweave-bridge.js, docs/vendor/wireweave/src/voice.js refresh) for any secret-shaped literal.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: git show d4a6f629e0 for the three edited JS files piped through grep for api_key/secret/token/password/bearer/credential returned zero matches. The diff is pure numeric threshold plumbing (a float RMS value) plus the docs/vendor/wireweave/src/voice.js refresh, which is a byte-for-byte copy of the already-swept submodule source (scan_deps clean earlier this session). No new secret-shaped literal introduced.
