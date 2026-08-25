@@ -25,7 +25,7 @@ jobs:
           node-version: '22'
 
       - name: Advance submodules to latest main
-        run: git submodule update --remote --merge
+        run: git submodule update --remote
 
       - name: Build anentrypoint-design SDK from submodule
         run: |
