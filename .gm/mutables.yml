@@ -184,3 +184,9 @@
   SESSION_ID: zellous-voicefix-1787663870
   status: witnessed
   witness_evidence: 'scratch-verify-connection-quality.mjs run live (exec_js dispatch 1787664561725) against the real, unmodified VoiceSession class with a controllable fake RTCPeerConnection -- all 12 checks passed: connected transitions quality to good (Test 2), disconnected transitions to poor immediately (Test 3), the ICE-restart/CONNECT_TIMEOUT watchdog path also transitions to poor (Test 4), retry exhaustion (a>=6) transitions to failed AND fires exactly one peer-connect-failed event with correct peerPubkey/attempts, distinct from peer-closed which fires on a genuinely clean leave and not on retry exhaustion (Tests 5-6), and the helper safely no-ops for an unknown/already-departed participant (Test 7).'
+- id: setquality-totality-replay
+  obligation_kind: totality
+  subject: '_setConnectionQuality must handle every reachable input safely: unknown/departed participant (no throw, no spurious event), same-value re-set (idempotent, no duplicate ''participants'' event), and every quality value actually used in the codebase (connecting/good/poor/failed)'
+  SESSION_ID: zellous-voicefix-1787663870
+  status: witnessed
+  witness_evidence: 'scratch-verify-connection-quality.mjs Test 7 confirms no-op-safe on unknown/departed participant (zero spurious events). A separate throwaway witness dispatch (1787665336650) confirmed idempotency directly against the real VoiceSession/_setConnectionQuality: 3 consecutive same-value calls fired exactly 1 ''participants'' event (not 3), matching the helper''s own p.connectionQuality===quality equality guard. Every quality value used in the codebase (connecting/good/poor/failed) is exercised somewhere in the committed scratch-verify script''s 12 checks.'
