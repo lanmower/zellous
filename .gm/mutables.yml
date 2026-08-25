@@ -137,3 +137,9 @@
   SESSION_ID: zellous-design-1787650200
   status: witnessed
   witness_evidence: 'cdp dispatch against local build: footerExists=false, zStatusServerExists=false, poweredByLinkExists=false, bodyScrollHeight(710)===windowInnerHeight(710) (no dead space/overflow), appReady=true, zero pageErrors.'
+- id: vc-safe-area-postcondition
+  obligation_kind: postcondition
+  subject: 'Postcondition for fix-mobile-vc-button-safe-area: VC buttons positioned correctly with safe-area accommodation at phone and tablet viewports, zero console errors'
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'cdp viewport=375x667 and viewport=768x1024 dispatches against local build: appReady=true both viewports, correct innerWidth/innerHeight, zero pageErrors. Synthetic .vx-view .vx-dock element computed-style check confirmed the zellous.css override (calc(var(--space-4) + env(safe-area-inset-bottom))) applies over the SDK''s own unmodified padding-bottom -- resolved to 22.5px (--space-4''s value, env() correctly evaluates 0 on non-notched viewport) at both sizes, padding-top untouched (15px, matches SDK''s own --space-3), confirming additive-only override with correct cascade specificity.'

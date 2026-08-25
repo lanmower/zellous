@@ -659,6 +659,20 @@ html.ds-247420 .ca-app { height: 100vh !important; overflow: hidden; }
   html.ds-247420 .app-side a { min-height: 44px; }
 }
 
+/* Voice-control dock (.vx-dock, the PttButton+VoiceControls cluster at the
+   bottom of the voice channel view) has a fixed --space-4 bottom padding in
+   the SDK's own 247420.css, with no accommodation for a device's home
+   indicator / gesture bar. html,body already carries a global
+   env(safe-area-inset-bottom) padding (see the top of this file), but that
+   alone doesn't help here: .vx-view's own overflow:hidden clips its last
+   child flush to .ca-app's bottom edge, inside the body's padding box, so
+   the dock's padding is what needs the inset added on top of its existing
+   space, not a page-level fix. Additive (not a replacement for --space-4)
+   so desktop/no-notch viewports are unaffected (env() resolves to 0px). */
+html.ds-247420 .vx-view .vx-dock {
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom)) !important;
+}
+
 /* zellous runs as a standalone app (not embedded in the 247420 portfolio
    shell), so the SDK's generic topbar — brand name + breadcrumb + nav — is
    redundant chrome: the channel name already shows in .chat-head, and the
