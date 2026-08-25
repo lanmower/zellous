@@ -1,7 +1,9 @@
 - id: add-design-wireweave-submodules
   subject: 'Add git submodules design/ (https://github.com/AnEntrypoint/design.git) and wireweave/ (https://github.com/AnEntrypoint/wireweave.git) at repo root, tracking each repo''s main branch, for local editing access. Precondition: no existing .gitmodules (confirmed absent). Postcondition: .gitmodules exists with both entries, git submodule status shows both checked out at main''s current tip, README/AGENTS.md documents the local-edit workflow (git submodule update --remote --merge to refresh).'
   SESSION_ID: zellous-design-1787650200
-  status: pending
+  status: completed
+  witness: 'Committed 21e8ab2: .gitmodules with both entries, design/ and wireweave/ checked out clean at each repo''s main tip (e91d786, d2a400e). Pushed; both CI and Deploy GH Pages green.'
+  commit_comment: Submodules added for local editing per user direction
 - id: ci-build-from-submodules
   subject: 'Wire gh-pages.yml (and ci.yml where relevant) to: (1) checkout with submodules:true and update each submodule to its remote main tip before build (git submodule update --remote --merge, committed back or done transiently in CI -- decide which at EXECUTE), (2) run npm ci + npm run build inside design/ to produce design/dist/247420.{js,css}, (3) copy design/dist/247420.{js,css} and wireweave/src/** into the paths docs/nostr-chat/index.html''s importmap+stylesheet reference so flatspace''s existing docs-asset-copy ships them, (4) remove the jsdelivr CDN dependency from the importmap injector and stylesheet link entirely. Precondition: add-design-wireweave-submodules resolved first (submodules must exist before CI can build from them). Postcondition: a fresh push with no jsdelivr network calls in the browser-witness step (verify via network trace or absence of cdn.jsdelivr.net in CI logs/requests), app boots identically (appReady, zero console errors), CI green.'
   SESSION_ID: zellous-design-1787650200

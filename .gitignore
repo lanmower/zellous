@@ -9,6 +9,9 @@ npm-debug.log*
 test-results/
 vendor/
 !docs/css/vendor/
+!docs/vendor/
+!docs/vendor/design/
+!docs/vendor/wireweave/
 osjs/dist/
 osjs/node_modules/
 README.md

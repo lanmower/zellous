@@ -61,9 +61,27 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+
+      - name: Advance submodules to latest main
+        run: git submodule update --remote --merge
+
+      - name: Build anentrypoint-design SDK from submodule
+        run: |
+          cd design
+          npm install
+          npm run build
+
+      - name: Vendor SDK build output + wireweave source into docs/
+        run: |
+          mkdir -p docs/vendor/design docs/vendor/wireweave
+          cp design/dist/247420.js design/dist/247420.css docs/vendor/design/
+          rm -rf docs/vendor/wireweave/src
+          cp -r wireweave/src docs/vendor/wireweave/src
 
       - name: Install Playwright
         run: npm install --no-save playwright@1
