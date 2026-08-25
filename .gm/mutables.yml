@@ -161,3 +161,9 @@
   SESSION_ID: zellous-design-1787650200
   status: witnessed
   witness_evidence: 'gh run list --json across 15 runs this session: every Deploy GH Pages run has a distinct createdAt timestamp (no simultaneous starts), each completed cleanly (all success except one known-root-caused failure from the --merge unrelated-histories bug, already fixed same session -- not a concurrency race), zero cancelled conclusions that would indicate the concurrency:{group:pages,cancel-in-progress:true} gate had to intervene on an overlap. 6 pushes landed in rapid succession this session and the deploy pipeline serialized them correctly.'
+- id: submodule-supply-chain-check
+  obligation_kind: secrets
+  subject: New CI steps run npm install inside the design/ submodule (arbitrary install scripts from its own dependency tree) and fetch from two additional GitHub remotes (AnEntrypoint/design, AnEntrypoint/wireweave) -- verify no secrets are exposed to these steps and the submodule content itself isn't carrying anything suspicious (matches this project's own gm supply-chain-scan discipline)
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'gh-pages.yml''s permissions block explicitly limits to contents:read/pages:write/id-token:write only -- no secrets/env block anywhere near the npm install step, so it runs with the default minimally-scoped GITHUB_TOKEN and no injected credentials to exfiltrate. Both submodules (AnEntrypoint/design, AnEntrypoint/wireweave) are owned by the same org as this repo, same trust boundary the prior jsdelivr CDN sourcing already implied. Locally ran npm install inside design/ this session (dispatch 1787653543774): 0 vulnerabilities, added only 7 well-known packages (esbuild, postcss, postcss-prefix-selector + their deps) -- no scan_deps HiddenSpawn-class hit observed in the install output or subsequent build.'
