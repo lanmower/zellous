@@ -167,3 +167,9 @@
   SESSION_ID: zellous-design-1787650200
   status: witnessed
   witness_evidence: 'gh-pages.yml''s permissions block explicitly limits to contents:read/pages:write/id-token:write only -- no secrets/env block anywhere near the npm install step, so it runs with the default minimally-scoped GITHUB_TOKEN and no injected credentials to exfiltrate. Both submodules (AnEntrypoint/design, AnEntrypoint/wireweave) are owned by the same org as this repo, same trust boundary the prior jsdelivr CDN sourcing already implied. Locally ran npm install inside design/ this session (dispatch 1787653543774): 0 vulnerabilities, added only 7 well-known packages (esbuild, postcss, postcss-prefix-selector + their deps) -- no scan_deps HiddenSpawn-class hit observed in the install output or subsequent build.'
+- id: ci-build-failure-boundary
+  obligation_kind: exception-model
+  subject: CI build steps (submodule update, npm install/build, asset vendoring) must fail loudly with an exit code CI can detect, never silently continue on error and deploy broken/stale content
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'Directly witnessed this session: the git submodule update --remote --merge bug (dispatch/run 32838718162) failed loudly with ''fatal: refusing to merge unrelated histories'', exit code 128, under GitHub Actions'' default bash -e shell (confirmed in the raw log line ''shell: /usr/bin/bash -e {0}'') -- the job correctly halted at that step and never proceeded to build/deploy stale or broken content. Same failure boundary protects every other run: command step in gh-pages.yml (checkout, submodule update, npm install, npm run build, cp, flatspace build) -- any nonzero exit aborts the job under bash -e, no silent-continue path exists anywhere in the added steps.'
