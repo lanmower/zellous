@@ -117,4 +117,5 @@
   obligation_kind: precondition
   subject: 'Precondition for add-design-wireweave-submodules: repo working tree clean before adding submodules (a submodule add writes .gitmodules + stages the gitlink, must land on a clean base to be auditable as its own commit)'
   SESSION_ID: zellous-design-1787650200
-  status: unknown
+  status: witnessed
+  witness_evidence: exec_js dispatch 1787653091251 confirmed git status --porcelain clean (only expected .gm/mutables.yml, .gm/prd.yml which were then committed+pushed as 2ad1325) before dispatching git submodule add
