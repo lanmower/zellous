@@ -209,7 +209,11 @@
         if ('mode' in patch && S.vadEnabled) S.vadEnabled.value = patch.mode === 'vad';
         if ('inputId' in patch && S.inputDeviceId) S.inputDeviceId.value = patch.inputId;
         if ('outputId' in patch && S.outputDeviceId) S.outputDeviceId.value = patch.outputId;
-        if ('vadThreshold' in patch && S.vadThreshold) S.vadThreshold.value = patch.vadThreshold;
+        if ('vadThreshold' in patch && S.vadThreshold) {
+          S.vadThreshold.value = patch.vadThreshold;
+          try { localStorage.setItem('vadThreshold', String(patch.vadThreshold)); } catch (_) {}
+          if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(patch.vadThreshold);
+        }
         if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
         if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
         if ('forceTurn' in patch) {

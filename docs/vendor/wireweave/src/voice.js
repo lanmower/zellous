@@ -1,23 +1,29 @@
-// ICE servers. STUN handles same-LAN / non-symmetric-NAT cases; TURN is required
-// when both peers sit behind symmetric or restricted-cone NAT (typical home routers,
-// most carrier-grade NAT, corporate networks). The legacy openrelay.metered.ca
-// hostname was retired; the current public-credential endpoint is global.relay.metered.ca.
-// We include UDP, TCP, and TLS variants so at least one path survives strict egress filtering.
+// ICE servers. STUN-only: TURN is required for symmetric/restricted-cone NAT pairs
+// (typical home routers, carrier-grade NAT, corporate networks) but no working free
+// static-credential public TURN provider exists anymore -- confirmed via live
+// RTCPeerConnection relay tests against 10+ candidates (metered.ca's current
+// global.relay.metered.ca and its newer staticauth HMAC scheme, numb.viagenie.ca,
+// several ~2013-era demo servers) plus research into every major current provider
+// (Metered, ExpressTURN, Cloudflare Calls, TurnRelay, elixir-webrtc/rel): all now
+// require account signup, several explicitly citing abuse prevention as why static
+// credentials were retired. This repo already hit this exact dead-end once before
+// (see git history for the openrelay.metered.ca -> global.relay.metered.ca swap,
+// which has since also died) -- it's a recurring pattern with free-tier TURN, not a
+// one-off broken link. A real fix needs either a paid/account-gated TURN provider
+// with a credential-issuing proxy (Cloudflare's own docs require keeping the API
+// token server-side, which this repo's no-backend design doesn't have) or a
+// self-hosted relay -- deliberately not done here; peers needing TURN (symmetric
+// NAT/CGNAT on both sides) will fail to connect until one of those is set up.
 const DEFAULT_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:global.stun.twilio.com:3478' },
-  { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-  // Legacy hostname kept as a low-priority fallback in case some deployments still resolve it.
-  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  { urls: 'stun:global.stun.twilio.com:3478' }
 ];
 let ICE_SERVERS = DEFAULT_ICE_SERVERS;
 export const setIceServers = (list) => { if (Array.isArray(list) && list.length) ICE_SERVERS = list; };
 export const getIceServers = () => ICE_SERVERS.slice();
+const hasTurnServer = () => ICE_SERVERS.some(s => (Array.isArray(s.urls) ? s.urls : [s.urls]).some(u => typeof u === 'string' && (u.startsWith('turn:') || u.startsWith('turns:'))));
 
 const PRESENCE_EXPIRY = 300000;
 const HEARTBEAT = 5000;        // tight cadence: heartbeat carries election scores + reflexive addr
@@ -42,6 +48,7 @@ const HUB_REL_ADVANTAGE = 0.25; // challenger must beat incumbent by ≥25% to t
 const SPEAKER_ACTIVE_RMS = 0.045;     // RMS threshold above which a stream counts as "speaking"
 const SPEAKER_HOLD_MS = 350;          // tail: stay marked speaking this long after last frame > threshold
 const SPEAKER_POLL_MS = 80;           // analyzer poll cadence
+const LEVEL_METER_CEILING = 0.35;     // raw RMS mapped to a full 0-1 meter bar (empirical loud-speech ceiling)
 const QUEUE_MAX_SEGMENT_MS = 30000;   // hard cap per segment
 const QUEUE_MIME_PREFS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
 const DC_LABEL = 'wireweave-queue';
@@ -142,7 +149,16 @@ export class VoiceSession extends EventTarget {
     this.forceRelay = !!forceRelay;
   }
 
-  setForceRelay(on) { this.forceRelay = !!on; }
+  setForceRelay(on) {
+    this.forceRelay = !!on;
+    // iceTransportPolicy:'relay' restricts ICE candidate gathering to TURN-sourced
+    // relay candidates only -- STUN never produces those, so with no TURN server
+    // configured (see DEFAULT_ICE_SERVERS' file-header comment) this setting is a
+    // guaranteed, permanent connection failure rather than the "route via relay
+    // for IP privacy" behavior it's meant to provide. Warn now, at the point the
+    // setting is changed, rather than let it silently doom every future connect().
+    if (this.forceRelay && !hasTurnServer()) this._emit('media-warning', { message: 'Force TURN is enabled but no TURN server is configured -- voice connections will fail to establish. Disable Force TURN or configure a TURN server via setIceServers().' });
+  }
 
   // Live-settable: mic-sensitivity threshold used by the speaker-activity poller.
   setMicSensitivity(rms) {
@@ -357,6 +373,15 @@ export class VoiceSession extends EventTarget {
       if (active) a.lastActive = now;
       const stillSpeaking = active || (now - a.lastActive) < SPEAKER_HOLD_MS;
       if (stillSpeaking !== a.speaking) { a.speaking = stillSpeaking; this._setSpeaking(key, stillSpeaking); }
+      if (key === 'local') {
+        // Normalized 0-1 level for a live VAD meter UI, distinct from the speaking
+        // boolean above -- LEVEL_METER_CEILING is an empirical loud-speech RMS
+        // ceiling (raw RMS rarely exceeds ~0.3-0.4 even shouting close to a mic),
+        // not a physical constant; scaling against it keeps normal speech visible
+        // in the meter instead of pinned near the bottom of a 0-1 bar.
+        const level = Math.max(0, Math.min(1, rms / LEVEL_METER_CEILING));
+        this._emit('local-level', { level, rms });
+      }
     }
     this._maybeAutoTransmit();
   }
@@ -699,7 +724,12 @@ export class VoiceSession extends EventTarget {
     fsmActor.start();
     const peer = { pc: null, audioEl: null, pendingCandidates: [], bufferedCandidates: [], iceTimer: null, disconnectTimer: null, connectTimer: null, failCount: 0, state: 'new', fsm: fsmActor, _stallInterval: null, remoteDescSet: false, trackEndedRestart: false };
     this.peers.set(peerPubkey, peer);
-    const pc = this.createPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle', iceCandidatePoolSize: 4, iceTransportPolicy: this.forceRelay ? 'relay' : 'all' });
+    // Re-check hasTurnServer() here rather than trust setForceRelay()'s own warning
+    // alone -- this is the actual point of consequence (where iceTransportPolicy is
+    // set), so it stays correct even if forceRelay is ever set another way (directly
+    // via the constructor, a future setter) that bypasses setForceRelay()'s check.
+    const relayRequested = this.forceRelay && hasTurnServer();
+    const pc = this.createPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle', iceCandidatePoolSize: 4, iceTransportPolicy: relayRequested ? 'relay' : 'all' });
     peer.pc = pc;
     // Watchdog: if this pc hasn't reached 'connected' within CONNECT_TIMEOUT, force
     // the same recovery path a real 'failed' event would take, instead of relying on
@@ -764,13 +794,14 @@ export class VoiceSession extends EventTarget {
         if (peer.disconnectTimer) { clearTimeout(peer.disconnectTimer); peer.disconnectTimer = null; }
         if (peer.connectTimer) { clearTimeout(peer.connectTimer); peer.connectTimer = null; }
         this._applyAudioHints(pc);
+        this._setConnectionQuality(peerPubkey, 'good');
       }
       // Clear connectTimer here too: a pc can go straight 'new' -> 'disconnected' in some
       // browsers without ever reporting 'connected'. Without this, connectTimer and the
       // disconnectTimer armed below would both independently call _doIceRestart on the
       // same peer -- a double-fire that double-increments failCount and can double-send
       // ICE restart offers / double-schedule the close+backoff reconnect.
-      if (pc.connectionState === 'disconnected') { if (peer.connectTimer) { clearTimeout(peer.connectTimer); peer.connectTimer = null; } fsmActor.send({ type: 'disconnect' }); peer.disconnectTimer = setTimeout(() => this._doIceRestart(peer, peerPubkey, fsmActor), DISCONNECT_GRACE); }
+      if (pc.connectionState === 'disconnected') { if (peer.connectTimer) { clearTimeout(peer.connectTimer); peer.connectTimer = null; } fsmActor.send({ type: 'disconnect' }); peer.disconnectTimer = setTimeout(() => this._doIceRestart(peer, peerPubkey, fsmActor), DISCONNECT_GRACE); this._setConnectionQuality(peerPubkey, 'poor'); }
       if (pc.connectionState === 'failed') this._doIceRestart(peer, peerPubkey, fsmActor);
       if (pc.connectionState === 'closed') { this._closePeer(peerPubkey); if (this.sfu.hub === peerPubkey) this._sfuOnHubLost(); }
       if (pc.connectionState === 'failed' && this.sfu.hub === peerPubkey) this._sfuOnHubLost();
@@ -847,6 +878,7 @@ export class VoiceSession extends EventTarget {
     if (peer.disconnectTimer) { clearTimeout(peer.disconnectTimer); peer.disconnectTimer = null; }
     if (peer.connectTimer) { clearTimeout(peer.connectTimer); peer.connectTimer = null; }
     peer.failCount++;
+    this._setConnectionQuality(peerPubkey, 'poor');
     if (peer.failCount <= 1 && this.auth.pubkey > peerPubkey) {
       fsmActor.send({ type: 'restart' }); pc.restartIce();
       // Re-arm the watchdog for the restarted attempt -- only the offerer retries in
@@ -893,6 +925,19 @@ export class VoiceSession extends EventTarget {
     }
   }
 
+  // participants is keyed by shortId ('nostr-' + first 12 hex chars of the
+  // full pubkey, see _handlePresence/line ~643), while every WebRTC/timer
+  // callback only has the full peerPubkey in scope -- bridge the two
+  // keyspaces here rather than inline at each call site. A no-op if the
+  // participant already left (shortId deleted) or was never a remote peer.
+  _setConnectionQuality(peerPubkey, quality) {
+    const shortId = 'nostr-' + peerPubkey.slice(0, 12);
+    const p = this.participants.get(shortId);
+    if (!p || p.connectionQuality === quality) return;
+    p.connectionQuality = quality;
+    this._emit('participants', { list: this.getParticipants() });
+  }
+
   async _publishSignal(toPubkey, type, data) {
     if (!this.auth.pubkey || !this.roomId) return;
     const d = 'zellous-rtc:' + this.roomId + ':' + this.auth.pubkey + ':' + toPubkey + ':' + type + ':' + (type === 'ice' ? Date.now() : 'sdp');
@@ -917,7 +962,15 @@ export class VoiceSession extends EventTarget {
 
   _cancelReconnect(pk) { const e = this.retrySchedule[pk]; if (e) { clearTimeout(e.timer); delete this.retrySchedule[pk]; } }
   _scheduleReconnect(pk, attempt) {
-    const a = attempt || 0; if (a >= 6) return;
+    const a = attempt || 0;
+    if (a >= 6) {
+      // Retries genuinely exhausted -- distinct from 'peer-closed' (which also
+      // fires on a normal clean leave via _closePeer) so a consumer can tell
+      // "gave up after 6 attempts" apart from "they left the call".
+      this._setConnectionQuality(pk, 'failed');
+      this._emit('peer-connect-failed', { peerPubkey: pk, attempts: a });
+      return;
+    }
     this._cancelReconnect(pk);
     const timer = setTimeout(() => { delete this.retrySchedule[pk]; if (!this.peers.has(pk) && this.roomId) this._maybeConnect(pk); }, Math.min(2 ** a * 2000, 30000));
     this.retrySchedule[pk] = { attempt: a, timer };

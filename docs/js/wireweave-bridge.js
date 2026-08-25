@@ -540,11 +540,13 @@ window.__wireweaveReady = (async () => {
         autoGainControl: state.autoGainEnabled !== false,
       });
       v.setForceRelay(!!state.forceTurnEnabled);
+      if (typeof state.vadThreshold === 'number' && state.vadThreshold > 0) v.setMicSensitivity(state.vadThreshold);
       await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' });
       state.micMuted = !!v.muted;
     },
     setAudioConstraints(patch) { ensureVoice().setAudioConstraints(patch); },
     setForceRelay(on) { ensureVoice().setForceRelay(on); },
+    setMicSensitivity(rms) { ensureVoice().setMicSensitivity(rms); },
     setAudioBitrate(kbps) {
       const tier = kbps <= 16 ? 'low' : kbps <= 32 ? 'medium' : kbps <= 48 ? 'high' : 'max';
       ensureVoice().setAudioQuality(tier);

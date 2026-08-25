@@ -38,7 +38,7 @@ const state = {
   recentlyEndedSpeakers: signal(new Set()),
 
   vadEnabled: signal(false),
-  vadThreshold: signal(0.15),
+  vadThreshold: signal(typeof localStorage !== 'undefined' ? Number(localStorage.getItem('vadThreshold') || 0.15) : 0.15),
   vadSilenceDelay: signal(1500),
   vadSilenceTimer: signal(null),
   vadAnalyser: signal(null),
