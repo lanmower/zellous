@@ -53,12 +53,14 @@ tradeoffs, disclosed here rather than left implicit:
   cap on the composer this UI drives) — it slows down accidental flooding
   through this app's own send path, not a hostile client that bypasses this
   UI and publishes directly against the relay's own event-rate limits.
-- **Runtime dependencies are fetched live** from esm.sh (wireweave,
-  nostr-tools) and cdn.jsdelivr.net (markdown/syntax-highlighting libs), all
-  pinned to exact versions so the executing code cannot change without a
-  deliberate pin bump in this repo — but there is no Subresource Integrity
-  hash yet, so CDN or upstream-package compromise remains a real risk this
-  pinning narrows but does not eliminate.
+- **The protocol layer and UI kit (wireweave, anentrypoint-design) are built
+  by CI from git submodules** (`design/`, `wireweave/`) and vendored into
+  the deployed app — CI advances both to their latest upstream `main` on
+  every push, so this app auto-tracks new commits with no manual bump. The
+  UI kit's own runtime code separately fetches syntax-highlighting libs
+  (prismjs) live from cdn.jsdelivr.net; nostr-tools is pinned to an exact
+  version fetched from esm.sh. None of these carry a Subresource Integrity
+  hash yet, so CDN or upstream-package compromise remains a real risk.
 - **No operational visibility.** There is no backend to log to, monitor, or
   run incident response from — if something breaks or is abused, this
   client has no built-in way to detect or report it.
