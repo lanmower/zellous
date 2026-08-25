@@ -98,3 +98,23 @@
   SESSION_ID: zellous-update-1787223090
   status: witnessed
   witness_evidence: 'Exercised the failure boundary twice live this session: (1) git_push dispatches 1787223590219 and 1787223908397 both correctly returned gate_denied/deviation.push-dirty with explicit porcelain diff and next_action_hint rather than silently pushing partial state or crashing; (2) exec_js dispatch attempting fetch with missing auth (dispatch to dependabot/alerts REST endpoint) returned a clean error_code:failed with status:401 body surfaced, not an unhandled throw. No code in this session''s diff performs I/O without an explicit success/failure path -- all mutations are single npm/git CLI invocations whose exit codes were checked (exit_code:0 verified on every accepted exec_js result) before proceeding to the next step.'
+- id: submodule-target-clarified
+  subject: 'User clarified: submodule points at GitHub repo AnEntrypoint/design (not local ../design), for local dev/editing convenience -- coexists with the existing jsdelivr /gh/main CDN-live runtime consumption (browser still loads from CDN at boot; submodule is a checked-out working copy for editing the SDK source directly, not a runtime dependency change)'
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'User''s direct clarification in-turn: ''we want to submodule it to AnEntrypoint/design though not ../design'' -- confirms the submodule remote is the GitHub repo https://github.com/AnEntrypoint/design (or its git URL), added for local dev/editing, not a runtime architecture change.'
+- id: submodule-update-cascade-strategy-confirmed
+  subject: 'User confirmed: add design/ and wireweave/ as real git submodules (AnEntrypoint/design, AnEntrypoint/wireweave) for local editing; browser runtime stays on existing auto-tracking jsdelivr CDN import untouched; CI must include a strategy that always pulls each submodule to its remote main latest (git submodule update --remote --merge or equivalent), wired so pointers never go stale'
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'User''s direct answer: ''its fine if ci/cd includes it and we have a strategy that always pulls latest'' -- confirms CI-wired auto-update strategy for submodule pointers, submodules for local edit only, CDN import stays the runtime source.'
+- id: ci-builds-deploys-from-submodules-confirmed
+  subject: 'User confirmed final architecture: CI/CD builds design/wireweave FROM their submodule checkouts (each repo''s own build step where applicable) and the deployed docs/dist bundle uses that output directly -- replaces the jsdelivr /gh/main CDN runtime dependency entirely. CI must also auto-advance submodule pointers to latest main before building so every deploy ships current upstream code with no manual bump needed.'
+  SESSION_ID: zellous-design-1787650200
+  status: witnessed
+  witness_evidence: 'User''s direct answer: ''CI builds + deploys FROM submodules (recommended)'' -- confirms submodules become the actual source of truth for what ships, CDN dependency removed at runtime, CI auto-advances pointers before building.'
+- id: submodule-add-precondition
+  obligation_kind: precondition
+  subject: 'Precondition for add-design-wireweave-submodules: repo working tree clean before adding submodules (a submodule add writes .gitmodules + stages the gitlink, must land on a clean base to be auditable as its own commit)'
+  SESSION_ID: zellous-design-1787650200
+  status: unknown
