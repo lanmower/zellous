@@ -334,3 +334,21 @@
   SESSION_ID: zellous-turnfix-1787667820
   status: witnessed
   witness_evidence: git show d4a6f629e0 for the three edited JS files piped through grep for api_key/secret/token/password/bearer/credential returned zero matches. The diff is pure numeric threshold plumbing (a float RMS value) plus the docs/vendor/wireweave/src/voice.js refresh, which is a byte-for-byte copy of the already-swept submodule source (scan_deps clean earlier this session). No new secret-shaped literal introduced.
+- id: listen-track-fix-state-sweep
+  obligation_kind: replay
+  subject: Repeated setMuted toggles must never change _localListenTrack.enabled from true; connect() must always yield an enabled listen track regardless of pttMode; setMuted must only touch mute-related state.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch against real VoiceSession: (1) replay -- 4 consecutive setMuted toggles left _localListenTrack.enabled stable at true throughout (stable:true). (2) effect-boundary -- setMuted(true) left deafened/pttMode/forceRelay byte-for-byte unchanged (unrelatedStateUnchanged:true). (3) totality -- both PTT mode and open-mic mode connect() produced an enabled listen track (bothTrue:true), covering both the buggy default case and the previously-working case.'
+- id: listen-track-fix-res-sweep
+  obligation_kind: degradation
+  subject: When getUserMedia fails entirely (no mic), connect() and setMuted() must not throw, and _localListenTrack must correctly stay null/undefined rather than a stale reference. An interrupted/superseded connect() call must not leave a torn listen-track state.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch (task-1a03a49a95c) against real VoiceSession: (1) no-mic case -- getUserMedia throwing produced connectThrew:false and setMutedThrew:false (both fail gracefully via the pre-existing catch/null-guard chain), localListenTrackIsNull:true (correctly stays unset, no stale reference). (2) interrupted-connect case -- calling disconnect() immediately after starting a slow connect() (superseding it via the epoch guard) produced noThrowOnInterruptedConnect:true, and the final _localListenTrack state was still {enabled:true} -- even a torn/superseded connect leaves the listen track correctly enabled per the fix''s invariant, not a leaked disabled state.'
+- id: listen-track-fix-res-sweep
+  obligation_kind: degradation
+  subject: When getUserMedia fails entirely (no mic), connect() and setMuted() must not throw, and _localListenTrack must correctly stay null/undefined rather than a stale reference. An interrupted/superseded connect() call must not leave a torn listen-track state.
+  SESSION_ID: zellous-turnfix-1787667820
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch (task-1a03a49a95c) against real VoiceSession: (1) no-mic case -- getUserMedia throwing produced connectThrew:false and setMutedThrew:false (both fail gracefully via the pre-existing catch/null-guard chain), localListenTrackIsNull:true (correctly stays unset, no stale reference). (2) interrupted-connect case -- calling disconnect() immediately after starting a slow connect() (superseding it via the epoch guard) produced noThrowOnInterruptedConnect:true, and the final _localListenTrack state was still {enabled:true} -- even a torn/superseded connect leaves the listen track correctly enabled per the fix''s invariant, not a leaked disabled state.'
