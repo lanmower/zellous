@@ -516,9 +516,13 @@ window.__wireweaveReady = (async () => {
     });
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.message.add('Voice connected'); });
     voice.addEventListener('media-warning', (e) => { window.message.add(e.detail.message); });
-    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); pruneVoiceMedia(null); });
+    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
+    voice.addEventListener('local-level', (e) => {
+      const q = Math.round(e.detail.level * 100) / 100;
+      if (state.micRawLevel !== q) state.micRawLevel = q;
+    });
     return voice;
   };
 
